@@ -1,0 +1,37 @@
+/*
+Creator: Dragon Prince
+Date: 23.10.2011
+Time: 08:02 PM
+*/
+
+#move 
+{
+background:url(../images/background.png)  repeat 5% 5%;
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+z-index: 100;
+}
+
+#move2 
+{
+background:url(../images/midground.png) repeat 5% 5%;
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+z-index: 100;
+}
+
+#move3 
+{
+background:url(../images/foreground.png) repeat 5% 5%;
+position: absolute;
+top: 0; left: 0; right: 0; bottom: 0;
+z-index: 100;
+}
+
+canvas 
+{
+display:block;
+margin:20px auto 0;
+border:1px dashed #ccc;
+background:none;
+}
