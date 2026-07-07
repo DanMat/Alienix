@@ -1,26 +1,117 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<title>Alienix</title>
-<link rel="stylesheet" type="text/css" media="screen" href="css/style.css" />
-
-<script type="text/javascript" src="js/jquery-1.3.2.min.js"></script>
-<script type="text/javascript" src="js/custom.js"></script>
-<script type="text/javascript" src="js/pngFix.js"></script>
-<script type="text/javascript" src="js/game.js"></script>
-<script type="text/javascript">
-  DD_belatedPNG.fix('.png-fix');
-</script>
-
-
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<meta name="description" content="Alienix — a twin-stick arena survivor. Pilot a lone ship, survive endless alien swarms, level up and pick upgrades. Dependency-free vanilla JavaScript, online leaderboard." />
+	<title>Alienix — arena survivor</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com" />
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+	<link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+	<div class="frame">
+		<div class="hud">
+			<div class="hud__cell"><span class="hud__label">Score</span><span id="hudScore">0</span></div>
+			<div class="hud__cell hud__mid"><span id="hudWave">Wave 1</span><span class="hud__time" id="hudTime">0:00</span></div>
+			<div class="hud__cell hud__right"><span class="hud__label">Health</span><span id="hudHealth" class="hud__health"></span></div>
+		</div>
 
-<div id="move">
-<div id="move2">
-<div id="move3">
-<canvas id="canvas" width="600" height="600"></canvas>
-</div>
-</div>
-</div>
+		<div class="playfield">
+			<canvas id="game" width="760" height="760"></canvas>
+
+			<div class="xpbar"><div class="xpbar__fill" id="xpFill"></div><span class="xpbar__lv" id="hudLevel">LV 1</span></div>
+			<div class="toast" id="toast"></div>
+
+			<!-- Title -->
+			<div class="screen screen--title" id="screenTitle">
+				<h1 class="logo">ALIENIX</h1>
+				<p class="tagline">Survive the swarm. Level up. Don't die.</p>
+				<p class="title-top" id="titleTop"></p>
+				<div class="btns">
+					<button class="btn btn--primary" id="btnPlay">Play</button>
+					<button class="btn" id="btnHow">How to play</button>
+					<button class="btn" id="btnTitleLb">High scores</button>
+				</div>
+			</div>
+
+			<!-- How to play -->
+			<div class="screen" id="screenHowto" hidden>
+				<h2 class="screen-title">How to play</h2>
+				<ul class="howto">
+					<li><strong>Move</strong> with <strong>WASD / arrow keys</strong> (or drag on touch).</li>
+					<li>Your ship <strong>auto-fires</strong> — <strong>aim with the mouse</strong>, or it auto-targets the nearest alien.</li>
+					<li>Aliens pour in from <strong>every edge</strong>. Don't let them touch you.</li>
+					<li>Kills drop <strong>green XP gems</strong> — grab them to <strong>level up</strong> and pick an <strong>upgrade</strong>.</li>
+					<li>Every 30s a new <strong>wave</strong> ramps up; watch for <strong>elites</strong> and <strong>bosses</strong>.</li>
+					<li>Press <strong>P</strong> to pause. Survive as long as you can!</li>
+				</ul>
+				<button class="btn btn--primary" id="btnHowClose">Back</button>
+			</div>
+
+			<!-- Level up -->
+			<div class="screen screen--levelup" id="screenLevelup" hidden>
+				<h2 class="screen-title levelup-title">Level Up!</h2>
+				<p class="screen-sub">Choose an upgrade</p>
+				<div class="cards" id="cards"></div>
+			</div>
+
+			<!-- Pause -->
+			<div class="screen" id="screenPause" hidden>
+				<h2 class="screen-title">Paused</h2>
+				<div class="btns">
+					<button class="btn btn--primary" id="btnResume">Resume</button>
+					<button class="btn" id="btnPauseMenu">Main menu</button>
+				</div>
+			</div>
+
+			<!-- Game over -->
+			<div class="screen" id="screenGameover" hidden>
+				<h2 class="screen-title">Game Over</h2>
+				<p class="big-score" id="goScore">0</p>
+				<p class="screen-sub" id="goSub"></p>
+				<div class="btns">
+					<button class="btn btn--primary" id="btnAgain">Play again</button>
+					<button class="btn" id="btnGoLb">High scores</button>
+					<button class="btn" id="btnMenu">Main menu</button>
+				</div>
+			</div>
+
+			<!-- Initials -->
+			<div class="screen" id="screenInitials" hidden>
+				<h2 class="screen-title">New High Score!</h2>
+				<p class="big-score" id="initScore">0</p>
+				<p class="screen-sub">Enter your initials</p>
+				<div class="slots">
+					<div class="slot slot--active"><button class="slot__up" aria-label="up">▲</button><span class="slot__ch">A</span><button class="slot__down" aria-label="down">▼</button></div>
+					<div class="slot"><button class="slot__up" aria-label="up">▲</button><span class="slot__ch">A</span><button class="slot__down" aria-label="down">▼</button></div>
+					<div class="slot"><button class="slot__up" aria-label="up">▲</button><span class="slot__ch">A</span><button class="slot__down" aria-label="down">▼</button></div>
+				</div>
+				<p class="hint">Type letters or use ▲▼ · Enter to submit</p>
+				<button class="btn btn--primary" id="btnInitEnter">Enter</button>
+			</div>
+
+			<!-- Leaderboard -->
+			<div class="screen" id="screenLeaderboard" hidden>
+				<h2 class="screen-title" id="lbTitle">High Scores</h2>
+				<p class="screen-sub">Top scores · <span id="lbMode">this device</span></p>
+				<div class="lb-scroll">
+					<table class="lb">
+						<thead><tr><th>#</th><th>Name</th><th>Score</th><th>Wave</th></tr></thead>
+						<tbody id="lbBody"></tbody>
+					</table>
+				</div>
+				<div class="btns">
+					<button class="btn btn--primary" id="btnLbAgain">Play again</button>
+					<button class="btn" id="btnLbMenu">Main menu</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script src="js/config.js"></script>
+	<script src="js/leaderboard.js"></script>
+	<script src="js/game.js"></script>
 </body>
 </html>
