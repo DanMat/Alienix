@@ -18,9 +18,11 @@
 	/* ------------------------------- state -------------------------------- */
 
 	var state = 'title';          // title | howto | playing | levelup | paused | ending | gameover | initials | leaderboard
-	var player, enemies, bullets, ebullets, gems, particles, floats;
-	var elapsed, score, kills, wave, spawnTimer, eliteTimer, shake, hurtFlash;
-	var xp, level, xpToNext, levelQueue;
+	// Initialised up front: render() runs every frame (even on the title screen,
+	// before newGame()), so these must be safe to iterate from the very start.
+	var player = null, enemies = [], bullets = [], ebullets = [], gems = [], particles = [], floats = [];
+	var elapsed = 0, score = 0, kills = 0, wave = 1, spawnTimer = 0, eliteTimer = 30, shake = 0, hurtFlash = 0;
+	var xp = 0, level = 1, xpToNext = 6, levelQueue = 0;
 	var input = { up: false, down: false, left: false, right: false, mouseX: null, mouseY: null, hasMouse: false, touch: null };
 
 	/* --------------------------- data tables ------------------------------ */
