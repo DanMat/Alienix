@@ -11,9 +11,9 @@
 	'use strict';
 
 	var W = 760, H = 760;
-	var canvas, ctx, dpr = 1;
+	var view, canvas, ctx;
+	var board, screens, initEntry, fx, sfx;   // Retroix-provided
 	var el = {};
-	var raf, lastTime;
 
 	/* ------------------------------- state -------------------------------- */
 
@@ -21,7 +21,7 @@
 	// Initialised up front: render() runs every frame (even on the title screen,
 	// before newGame()), so these must be safe to iterate from the very start.
 	var player = null, enemies = [], bullets = [], ebullets = [], gems = [], particles = [], floats = [];
-	var elapsed = 0, score = 0, kills = 0, wave = 1, spawnTimer = 0, eliteTimer = 30, shake = 0, hurtFlash = 0;
+	var elapsed = 0, score = 0, kills = 0, wave = 1, spawnTimer = 0, eliteTimer = 30;
 	var xp = 0, level = 1, xpToNext = 6, levelQueue = 0;
 	var input = { up: false, down: false, left: false, right: false, mouseX: null, mouseY: null, hasMouse: false, touch: null };
 
@@ -61,27 +61,22 @@
 	/* ------------------------------- setup -------------------------------- */
 
 	function boot() {
-		canvas = document.getElementById('game');
-		ctx = canvas.getContext('2d');
-		[ 'hudScore', 'hudTime', 'hudWave', 'hudHealth', 'xpFill', 'hudLevel',
-		  'screenTitle', 'screenHowto', 'screenPause', 'screenLevelup', 'screenGameover',
-		  'screenInitials', 'screenLeaderboard', 'toast',
-		  'goScore', 'goSub', 'initScore', 'lbBody', 'lbMode', 'lbTitle', 'titleTop', 'cards'
+		view = Retroix.canvas('#game', W, H);
+		canvas = view.canvas; ctx = view.ctx;
+		fx = Retroix.fx(view);
+		sfx = Retroix.audio();
+		board = Retroix.leaderboard(window.GAME_CONFIG);
+		screens = Retroix.screens(document);
+		[ 'hudScore', 'hudTime', 'hudWave', 'hudHealth', 'xpFill', 'hudLevel', 'toast',
+		  'goScore', 'goSub', 'initScore', 'initMount', 'lbBody', 'lbMode', 'lbTitle', 'titleTop', 'cards'
 		].forEach(function (id) { el[id] = document.getElementById(id); });
 
-		resize();
-		window.addEventListener('resize', resize);
+		initEntry = Retroix.initials(el.initMount, { onEnter: submitInitials });
+		initEntry.bindKeys();
 		bindInput();
 		bindButtons();
 		showTitle();
-		lastTime = performance.now();
-		raf = requestAnimationFrame(loop);
-	}
-
-	function resize() {
-		dpr = Math.min(window.devicePixelRatio || 1, 2);
-		canvas.width = W * dpr; canvas.height = H * dpr;
-		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		Retroix.loop(step).start();
 	}
 
 	/* ------------------------------ new game ------------------------------ */
@@ -94,7 +89,7 @@
 			magnet: 80, regen: 0, iframe: 0, regenAcc: 0
 		};
 		enemies = []; bullets = []; ebullets = []; gems = []; particles = []; floats = [];
-		elapsed = 0; score = 0; kills = 0; wave = 1; spawnTimer = 0; eliteTimer = 30; shake = 0; hurtFlash = 0;
+		elapsed = 0; score = 0; kills = 0; wave = 1; spawnTimer = 0; eliteTimer = 30;
 		xp = 0; level = 1; xpToNext = 6; levelQueue = 0;
 		updateHud();
 	}
@@ -103,18 +98,16 @@
 
 	/* -------------------------------- loop -------------------------------- */
 
-	function loop(now) {
-		var dt = Math.min((now - lastTime) / 1000, 0.05);
-		lastTime = now;
+	function step(dt) {
+		fx.update(dt);
 		if (state === 'playing') { update(dt); }
 		render();
-		raf = requestAnimationFrame(loop);
 	}
 
 	function update(dt) {
 		elapsed += dt;
 		var newWave = Math.floor(elapsed / 30) + 1;
-		if (newWave > wave) { wave = newWave; toast('Wave ' + wave); }
+		if (newWave > wave) { wave = newWave; toast('Wave ' + wave); sfx.jingle('levelup'); }
 
 		updatePlayer(dt);
 		updateSpawning(dt);
@@ -123,8 +116,6 @@
 		updateEnemyBullets(dt);
 		updateGems(dt);
 		updateParticles(dt);
-		if (shake > 0) { shake = Math.max(0, shake - dt * 60); }
-		if (hurtFlash > 0) { hurtFlash = Math.max(0, hurtFlash - dt * 2.5); }
 		updateHud();
 	}
 
@@ -171,6 +162,7 @@
 			bullets.push({ x: p.x + Math.cos(p.aim) * p.r, y: p.y + Math.sin(p.aim) * p.r,
 				vx: Math.cos(a) * p.projSpeed, vy: Math.sin(a) * p.projSpeed, life: 1.1, pierce: p.pierce, dmg: p.damage, hit: [] });
 		}
+		sfx.tone({ wave: 'square', freq: 720, freqEnd: 480, dur: 0.05, vol: 0.18 });   // pew
 	}
 
 	function nearestEnemy() {
@@ -280,7 +272,7 @@
 	function damagePlayer(dmg) {
 		player.hp -= dmg;
 		player.iframe = 1;
-		hurtFlash = 1; shake = 10;
+		fx.flash('#ff283c', 0.32); fx.shake(0.55); sfx.hit();
 		if (player.hp <= 0) { player.hp = 0; endGame(); }
 	}
 
@@ -309,6 +301,7 @@
 		var e = enemies[j];
 		score += e.score; kills++;
 		spawnParticles(e.x, e.y, e.color, e.boss ? 30 : 8);
+		sfx.play(e.boss ? 'explosion' : 'hit');
 		if (e.shape === 'amoeba' && !e._split && e.r > 12) {
 			for (var s = 0; s < 2; s++) {
 				var c = { type: 'grunt', x: e.x + rand(-10, 10), y: e.y + rand(-10, 10), r: 11,
@@ -318,7 +311,7 @@
 			}
 		}
 		for (var g = 0; g < e.xp; g++) { gems.push({ x: e.x + rand(-8, 8), y: e.y + rand(-8, 8), v: 1, drift: 0 }); }
-		if (e.boss) { toast('BOSS DOWN +' + e.score); shake = 16; }
+		if (e.boss) { toast('BOSS DOWN +' + e.score); fx.shake(0.9); }
 		enemies.splice(j, 1);
 	}
 
@@ -347,7 +340,7 @@
 				var a = Math.atan2(p.y - g.y, p.x - g.x), pull = 3 + (1 - Math.sqrt(d2) / p.magnet) * 6;
 				g.x += Math.cos(a) * pull * f; g.y += Math.sin(a) * pull * f;
 			}
-			if (d2 < (p.r + 8) * (p.r + 8)) { gainXp(g.v); gems.splice(i, 1); }
+			if (d2 < (p.r + 8) * (p.r + 8)) { gainXp(g.v); gems.splice(i, 1); sfx.tone({ wave: 'square', freq: 1100, dur: 0.04, vol: 0.18 }); }
 		}
 	}
 
@@ -377,6 +370,7 @@
 
 	function openLevelUp() {
 		state = 'levelup';
+		sfx.powerup();
 		var opts = UPGRADES.slice();
 		for (var i = opts.length - 1; i > 0; i--) { var j = (Math.random() * (i + 1)) | 0; var t = opts[i]; opts[i] = opts[j]; opts[j] = t; }
 		var choices = opts.slice(0, 3);
@@ -393,17 +387,17 @@
 	}
 
 	function chooseUpgrade(u) {
+		sfx.select();
 		u.apply(player);
 		levelQueue--;
 		if (levelQueue > 0) { openLevelUp(); }
-		else { showScreen(null); state = 'playing'; lastTime = performance.now(); }
+		else { showScreen(null); state = 'playing'; }
 	}
 
 	/* -------------------------------- render ------------------------------ */
 
 	function render() {
-		ctx.save();
-		if (shake > 0) { ctx.translate(rand(-shake, shake) * 0.5, rand(-shake, shake) * 0.5); }
+		fx.preRender(ctx);
 		drawArena();
 		for (var i = 0; i < gems.length; i++) { drawGem(gems[i]); }
 		for (i = 0; i < enemies.length; i++) { drawEnemy(enemies[i]); }
@@ -411,8 +405,7 @@
 		if (player) { drawPlayer(); }
 		for (i = 0; i < bullets.length; i++) { drawBullet(bullets[i]); }
 		for (i = 0; i < particles.length; i++) { drawParticle(particles[i]); }
-		ctx.restore();
-		if (hurtFlash > 0) { ctx.fillStyle = 'rgba(255,40,60,' + (hurtFlash * 0.32) + ')'; ctx.fillRect(0, 0, W, H); }
+		fx.postRender(ctx);
 	}
 
 	function drawArena() {
@@ -513,7 +506,8 @@
 
 	function endGame() {
 		state = 'ending';
-		Leaderboard.qualifies(score).then(function (ok) { ok ? showInitials() : showGameover(); });
+		sfx.jingle('gameover');
+		board.qualifies(score).then(function (ok) { ok ? showInitials() : showGameover(); });
 	}
 	function showGameover() {
 		state = 'gameover';
@@ -524,21 +518,16 @@
 
 	/* --------------------------- initials entry --------------------------- */
 
-	var initSlots = ['A', 'A', 'A'], initCursor = 0;
 	function showInitials() {
-		state = 'initials'; initSlots = ['A', 'A', 'A']; initCursor = 0;
+		state = 'initials'; initEntry.reset(); initEntry.active = true;
 		el.initScore.textContent = score.toLocaleString();
-		renderInitials(); showScreen('screenInitials');
+		showScreen('screenInitials');
 	}
-	function renderInitials() {
-		el.screenInitials.querySelectorAll('.slot').forEach(function (s, i) {
-			s.querySelector('.slot__ch').textContent = initSlots[i];
-			s.classList.toggle('slot--active', i === initCursor);
-		});
-	}
-	function cycleSlot(i, d) { var c = (initSlots[i].charCodeAt(0) - 65 + d + 26) % 26; initSlots[i] = String.fromCharCode(65 + c); initCursor = i; renderInitials(); }
 	function submitInitials() {
-		Leaderboard.submit(initSlots.join(''), score, wave).then(function () { showLeaderboard(initSlots.join('')); });
+		if (state !== 'initials') { return; }
+		initEntry.active = false;
+		var initials = initEntry.value();
+		board.submit(initials, score, wave).then(function () { showLeaderboard(initials); });
 	}
 
 	/* ----------------------------- leaderboard ---------------------------- */
@@ -546,34 +535,28 @@
 	function showLeaderboard(highlight) {
 		state = 'leaderboard';
 		el.lbTitle.textContent = 'High Scores';
-		el.lbMode.textContent = Leaderboard.mode === 'supabase' ? 'online' : 'this device';
-		el.lbBody.innerHTML = '<tr><td colspan="4" class="lb-loading">Loading…</td></tr>';
+		el.lbMode.textContent = board.mode === 'supabase' ? 'online' : 'this device';
+		Retroix.renderLeaderboard(el.lbBody, null, { loadingText: 'Loading…' });
 		showScreen('screenLeaderboard');
-		Leaderboard.top().then(function (rows) {
-			if (!rows.length) { el.lbBody.innerHTML = '<tr><td colspan="4" class="lb-loading">No scores yet — be the first!</td></tr>'; return; }
-			var used = false;
-			el.lbBody.innerHTML = rows.map(function (row, i) {
-				var me = !used && highlight && row.initials === highlight && row.score === score; if (me) { used = true; }
-				return '<tr' + (me ? ' class="lb-me"' : '') + '><td>' + (i + 1) + '</td><td class="lb-ini">' + esc(row.initials) +
-					'</td><td class="lb-score">' + Number(row.score).toLocaleString() + '</td><td>' + (row.stage || '-') + '</td></tr>';
-			}).join('');
+		board.top().then(function (rows) {
+			Retroix.renderLeaderboard(el.lbBody, rows, {
+				columns: ['rank', 'initials', 'score', 'stage'],
+				highlightInitials: highlight, highlightScore: score,
+				emptyText: 'No scores yet — be the first!'
+			});
 		});
 	}
 	function refreshTitleTop() {
-		Leaderboard.top(1).then(function (rows) { el.titleTop.textContent = rows.length ? 'Best: ' + Number(rows[0].score).toLocaleString() + ' — ' + rows[0].initials : ''; });
+		board.top(1).then(function (rows) { el.titleTop.textContent = rows.length ? 'Best: ' + Number(rows[0].score).toLocaleString() + ' — ' + rows[0].initials : ''; });
 	}
-	function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
 	/* ------------------------------ screens ------------------------------- */
 
-	function showScreen(id) {
-		['screenTitle', 'screenHowto', 'screenPause', 'screenLevelup', 'screenGameover', 'screenInitials', 'screenLeaderboard']
-			.forEach(function (s) { el[s].hidden = (s !== id); });
-	}
+	function showScreen(id) { if (id) { screens.show(id); } else { screens.hideAll(); } }
 	function showTitle() { state = 'title'; showScreen('screenTitle'); refreshTitleTop(); }
 	function togglePause() {
 		if (state === 'playing') { state = 'paused'; showScreen('screenPause'); }
-		else if (state === 'paused') { showScreen(null); state = 'playing'; lastTime = performance.now(); }
+		else if (state === 'paused') { showScreen(null); state = 'playing'; }
 	}
 
 	/* ------------------------------- input -------------------------------- */
@@ -599,12 +582,13 @@
 
 		document.addEventListener('keydown', function (e) {
 			var k = e.key.toLowerCase();
-			if (state === 'initials') { return handleInitialsKey(e); }
+			if (state === 'initials') { return; }   // Retroix initials entry handles keys
 			if (k === 'arrowup' || k === 'w') { input.up = true; }
 			else if (k === 'arrowdown' || k === 's') { input.down = true; }
 			else if (k === 'arrowleft' || k === 'a') { input.left = true; }
 			else if (k === 'arrowright' || k === 'd') { input.right = true; }
 			else if (k === 'p' || k === 'escape') { togglePause(); }
+			else if (k === 'm') { sfx.toggle(); }
 			else if (k === 'enter' || k === ' ') { if (state === 'title') { startGame(); } }
 			if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].indexOf(k) !== -1) { e.preventDefault(); }
 		});
@@ -617,18 +601,6 @@
 		});
 	}
 
-	function handleInitialsKey(e) {
-		var k = e.key;
-		if (/^[a-zA-Z]$/.test(k)) { initSlots[initCursor] = k.toUpperCase(); if (initCursor < 2) { initCursor++; } renderInitials(); }
-		else if (k === 'ArrowUp') { cycleSlot(initCursor, 1); }
-		else if (k === 'ArrowDown') { cycleSlot(initCursor, -1); }
-		else if (k === 'ArrowLeft') { initCursor = Math.max(0, initCursor - 1); renderInitials(); }
-		else if (k === 'ArrowRight') { initCursor = Math.min(2, initCursor + 1); renderInitials(); }
-		else if (k === 'Backspace') { initCursor = Math.max(0, initCursor - 1); renderInitials(); }
-		else if (k === 'Enter') { submitInitials(); }
-		e.preventDefault();
-	}
-
 	function bindButtons() {
 		on('btnPlay', startGame); on('btnHow', function () { showScreen('screenHowto'); }); on('btnHowClose', showTitle);
 		on('btnTitleLb', function () { showLeaderboard(null); });
@@ -636,11 +608,6 @@
 		on('btnAgain', startGame); on('btnGoLb', function () { showLeaderboard(null); }); on('btnMenu', showTitle);
 		on('btnInitEnter', submitInitials);
 		on('btnLbAgain', startGame); on('btnLbMenu', showTitle);
-		el.screenInitials.querySelectorAll('.slot').forEach(function (slot, i) {
-			slot.querySelector('.slot__up').addEventListener('click', function () { cycleSlot(i, 1); });
-			slot.querySelector('.slot__down').addEventListener('click', function () { cycleSlot(i, -1); });
-			slot.addEventListener('click', function (e) { if (!e.target.closest('button')) { initCursor = i; renderInitials(); } });
-		});
 	}
 	function on(id, fn) { var n = document.getElementById(id); if (n) { n.addEventListener('click', fn); } }
 

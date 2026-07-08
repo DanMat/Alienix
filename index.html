@@ -8,6 +8,7 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com" />
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/DanMat/Retroix@v0.3.0/retroix.css" />
 	<link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -25,7 +26,7 @@
 			<div class="toast" id="toast"></div>
 
 			<!-- Title -->
-			<div class="screen screen--title" id="screenTitle">
+			<div class="screen screen--title" data-screen="screenTitle" id="screenTitle">
 				<h1 class="logo">ALIENIX</h1>
 				<p class="tagline">Survive the swarm. Level up. Don't die.</p>
 				<p class="title-top" id="titleTop"></p>
@@ -37,7 +38,7 @@
 			</div>
 
 			<!-- How to play -->
-			<div class="screen" id="screenHowto" hidden>
+			<div class="screen" data-screen="screenHowto" id="screenHowto" hidden>
 				<h2 class="screen-title">How to play</h2>
 				<ul class="howto">
 					<li><strong>Move</strong> with <strong>WASD / arrow keys</strong> (or drag on touch).</li>
@@ -51,14 +52,14 @@
 			</div>
 
 			<!-- Level up -->
-			<div class="screen screen--levelup" id="screenLevelup" hidden>
+			<div class="screen screen--levelup" data-screen="screenLevelup" id="screenLevelup" hidden>
 				<h2 class="screen-title levelup-title">Level Up!</h2>
 				<p class="screen-sub">Choose an upgrade</p>
 				<div class="cards" id="cards"></div>
 			</div>
 
 			<!-- Pause -->
-			<div class="screen" id="screenPause" hidden>
+			<div class="screen" data-screen="screenPause" id="screenPause" hidden>
 				<h2 class="screen-title">Paused</h2>
 				<div class="btns">
 					<button class="btn btn--primary" id="btnResume">Resume</button>
@@ -67,7 +68,7 @@
 			</div>
 
 			<!-- Game over -->
-			<div class="screen" id="screenGameover" hidden>
+			<div class="screen" data-screen="screenGameover" id="screenGameover" hidden>
 				<h2 class="screen-title">Game Over</h2>
 				<p class="big-score" id="goScore">0</p>
 				<p class="screen-sub" id="goSub"></p>
@@ -79,25 +80,21 @@
 			</div>
 
 			<!-- Initials -->
-			<div class="screen" id="screenInitials" hidden>
+			<div class="screen" data-screen="screenInitials" id="screenInitials" hidden>
 				<h2 class="screen-title">New High Score!</h2>
 				<p class="big-score" id="initScore">0</p>
 				<p class="screen-sub">Enter your initials</p>
-				<div class="slots">
-					<div class="slot slot--active"><button class="slot__up" aria-label="up">▲</button><span class="slot__ch">A</span><button class="slot__down" aria-label="down">▼</button></div>
-					<div class="slot"><button class="slot__up" aria-label="up">▲</button><span class="slot__ch">A</span><button class="slot__down" aria-label="down">▼</button></div>
-					<div class="slot"><button class="slot__up" aria-label="up">▲</button><span class="slot__ch">A</span><button class="slot__down" aria-label="down">▼</button></div>
-				</div>
+				<div id="initMount"></div>
 				<p class="hint">Type letters or use ▲▼ · Enter to submit</p>
 				<button class="btn btn--primary" id="btnInitEnter">Enter</button>
 			</div>
 
 			<!-- Leaderboard -->
-			<div class="screen" id="screenLeaderboard" hidden>
+			<div class="screen" data-screen="screenLeaderboard" id="screenLeaderboard" hidden>
 				<h2 class="screen-title" id="lbTitle">High Scores</h2>
 				<p class="screen-sub">Top scores · <span id="lbMode">this device</span></p>
-				<div class="lb-scroll">
-					<table class="lb">
+				<div class="rx-lb-scroll">
+					<table class="rx-lb">
 						<thead><tr><th>#</th><th>Name</th><th>Score</th><th>Wave</th></tr></thead>
 						<tbody id="lbBody"></tbody>
 					</table>
@@ -110,8 +107,8 @@
 		</div>
 	</div>
 
+	<script src="https://cdn.jsdelivr.net/gh/DanMat/Retroix@v0.3.0/retroix.js"></script>
 	<script src="js/config.js"></script>
-	<script src="js/leaderboard.js"></script>
 	<script src="js/game.js"></script>
 </body>
 </html>
