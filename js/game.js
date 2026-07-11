@@ -94,7 +94,7 @@
 		updateHud();
 	}
 
-	function startGame() { newGame(); state = 'playing'; showScreen(null); }
+	function startGame() { newGame(); state = 'playing'; showScreen(null); sfx.music('action'); }
 
 	/* -------------------------------- loop -------------------------------- */
 
@@ -192,6 +192,7 @@
 				spawnEnemy._lastBoss = Math.floor(elapsed / 120);
 				spawnEnemy('boss', true);
 				toast('⚠ BOSS');
+				sfx.music('boss');
 			} else {
 				spawnEnemy('tank', false, true); // an elite (tougher) tank
 			}
@@ -311,7 +312,7 @@
 			}
 		}
 		for (var g = 0; g < e.xp; g++) { gems.push({ x: e.x + rand(-8, 8), y: e.y + rand(-8, 8), v: 1, drift: 0 }); }
-		if (e.boss) { toast('BOSS DOWN +' + e.score); fx.shake(0.9); }
+		if (e.boss) { toast('BOSS DOWN +' + e.score); fx.shake(0.9); sfx.music('action'); }
 		enemies.splice(j, 1);
 	}
 
@@ -506,7 +507,7 @@
 
 	function endGame() {
 		state = 'ending';
-		sfx.jingle('gameover');
+		sfx.stopMusic(0.4); sfx.jingle('gameover');
 		board.qualifies(score).then(function (ok) { ok ? showInitials() : showGameover(); });
 	}
 	function showGameover() {
@@ -553,10 +554,10 @@
 	/* ------------------------------ screens ------------------------------- */
 
 	function showScreen(id) { if (id) { screens.show(id); } else { screens.hideAll(); } }
-	function showTitle() { state = 'title'; showScreen('screenTitle'); refreshTitleTop(); }
+	function showTitle() { state = 'title'; showScreen('screenTitle'); refreshTitleTop(); sfx.music('title'); }
 	function togglePause() {
-		if (state === 'playing') { state = 'paused'; showScreen('screenPause'); }
-		else if (state === 'paused') { showScreen(null); state = 'playing'; }
+		if (state === 'playing') { state = 'paused'; showScreen('screenPause'); sfx.pauseMusic(); }
+		else if (state === 'paused') { showScreen(null); state = 'playing'; sfx.resumeMusic(); }
 	}
 
 	/* ------------------------------- input -------------------------------- */
