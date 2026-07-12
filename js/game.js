@@ -24,6 +24,7 @@
 	var elapsed = 0, score = 0, kills = 0, wave = 1, spawnTimer = 0, eliteTimer = 30;
 	var xp = 0, level = 1, xpToNext = 6, levelQueue = 0;
 	var input = { up: false, down: false, left: false, right: false, mouseX: null, mouseY: null, hasMouse: false, touch: null };
+	var testMode = false, testDeaths = 0;   // autopilot: infinite lives + death-by-wave bucketing
 
 	/* --------------------------- data tables ------------------------------ */
 
@@ -77,6 +78,31 @@
 		bindButtons();
 		showTitle();
 		Retroix.loop(step).start();
+		setupAutopilot();
+	}
+
+	// Dev mode: Konami code -> a bot that dodges the nearest alien (auto-aim/fire
+	// handle shooting) and auto-picks level-up cards, to check the game runs
+	// stably. Endless game, so surviving the test window = pass; infinite lives.
+	function setupAutopilot() {
+		Retroix.autopilot({
+			start: function () { testMode = true; testDeaths = 0; if (state === 'title') { startGame(); } },
+			stop: function () { testMode = false; },
+			bot: function () {
+				if (state === 'levelup') { var card = el.cards && el.cards.firstChild; if (card) { card.click(); } return; }
+				if (state !== 'playing' || !player) { return; }
+				input.hasMouse = false;                                  // let the ship auto-aim
+				var e = nearestEnemy(), dx = 0, dy = 0;
+				if (e) { dx = player.x - e.x; dy = player.y - e.y; var d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d; }
+				dx += (W / 2 - player.x) * 0.006; dy += (H / 2 - player.y) * 0.006;   // drift toward center
+				input.left = dx < -0.15; input.right = dx > 0.15; input.up = dy < -0.15; input.down = dy > 0.15;
+			},
+			progress: function () { return Math.round(elapsed) + score * 0.001; },
+			location: function () { return wave; },
+			deaths: function () { return testDeaths; },
+			isWin: function () { return elapsed >= 45; },   // survive 45s under bot play = stable
+			deathsPerSpot: 8, stuck: 15, timeout: 60
+		});
 	}
 
 	/* ------------------------------ new game ------------------------------ */
@@ -274,7 +300,10 @@
 		player.hp -= dmg;
 		player.iframe = 1;
 		fx.flash('#ff283c', 0.32); fx.shake(0.55); sfx.hit();
-		if (player.hp <= 0) { player.hp = 0; endGame(); }
+		if (player.hp <= 0) {
+			if (testMode) { testDeaths++; player.hp = player.maxHp; player.iframe = 2; enemies.length = 0; ebullets.length = 0; return; }   // infinite lives
+			player.hp = 0; endGame();
+		}
 	}
 
 	/* ------------------------------ bullets ------------------------------- */
