@@ -53,12 +53,14 @@ your own build.
 
 ## High scores
 
-The leaderboard uses your browser's **localStorage** out of the box, and shares
-an online board across all of these games via a free **Supabase** project.
-See [`docs/supabase.sql`](docs/supabase.sql) for the schema and
-[`js/config.js`](js/config.js) for where the project URL + public key go — the
-board is namespaced by `gameId`, so Alienix's scores are separate from the
-other games'.
+High scores go to a **shared Cloudflare leaderboard** — a Worker + D1
+([retroix-leaderboard](https://github.com/DanMat/retroix-leaderboard)) shared by all of
+Dan's Retroix games and namespaced by `gameId`, so this game's board is its own. It
+works out of the box (no account, no setup) and validates + caps scores server-side.
+Blank `apiUrl` in [`js/config.js`](js/config.js) to fall back to a local
+(per-browser) board.
+
+> Any client-side leaderboard can be spoofed by a determined player — it's for fun, not competition.
 
 ## Play locally
 
@@ -75,8 +77,7 @@ python3 -m http.server 8000   # then visit http://localhost:8000
 | File | Responsibility |
 | --- | --- |
 | `js/game.js` | Canvas engine: movement, aiming, enemy AI, XP/level-up, waves, bosses. All art is drawn procedurally — no image assets. |
-| `js/leaderboard.js` | Reusable high-score store (Supabase REST + localStorage fallback). |
-| `js/config.js` | Supabase URL/key and game id. |
+| `js/config.js` | Leaderboard API URL and game id. |
 
 ## Credits
 
